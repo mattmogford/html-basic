@@ -15,89 +15,102 @@
   const ctx = canvas.getContext('2d');
 
 
-  /**
- * Draws a standard deviational ellipse (dispersion oval) on a canvas.
+/**
+ * Draws multiple standard deviational ellipses (dispersion ovals) on a canvas.
  *
  * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
- * @param {Array<Object>} data - The array of data points, where each object has 'x' and 'y' properties.
+ * @param {Array<Array<Object>>} datasets - An array of datasets, where each dataset is an array of objects with 'x' and 'y' properties.
  * @param {number} [scaleX=1] - A scaling factor for the x-coordinates.
  * @param {number} [scaleY=1] - A scaling factor for the y-coordinates.
  */
-function drawDispersionOval(ctx, data, scaleX = 1, scaleY = 1) {
-  if (data.length < 2) {
-    console.error("Not enough data points to draw a dispersion oval.");
-    return;
-  }
+function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
+  // Translate the canvas to make the center (0,0)
+  const canvasWidth = ctx.canvas.width;
+  const canvasHeight = ctx.canvas.height;
+  ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
-  // 1. Calculate the mean center
-  const n = data.length;
-  const sumX = data.reduce((acc, point) => acc + point.x, 0);
-  const sumY = data.reduce((acc, point) => acc + point.y, 0);
-  const meanX = sumX / n;
-  const meanY = sumY / n;
+  datasets.forEach((data) => {
+    if (data.length < 2) {
+      console.error("Not enough data points in a dataset to draw a dispersion oval.");
+      return;
+    }
 
-  // 2. Calculate the orientation (theta)
-  const tildeX = data.map((point) => point.x - meanX);
-  const tildeY = data.map((point) => point.y - meanY);
+    // 1. Calculate the mean center
+    const n = data.length;
+    const sumX = data.reduce((acc, point) => acc + point.x, 0);
+    const sumY = data.reduce((acc, point) => acc + point.y, 0);
+    const meanX = sumX / n;
+    const meanY = sumY / n;
 
-  const sumTildeXSquared = tildeX.reduce((acc, val) => acc + val * val, 0);
-  const sumTildeYSquared = tildeY.reduce((acc, val) => acc + val * val, 0);
-  const sumTildeXY = tildeX.reduce((acc, val, i) => acc + val * tildeY[i], 0);
+    // 2. Calculate the orientation (theta)
+    const tildeX = data.map((point) => point.x - meanX);
+    const tildeY = data.map((point) => point.y - meanY);
 
-  const theta =
-    Math.atan(
-      (sumTildeXSquared - sumTildeYSquared + Math.sqrt(Math.pow(sumTildeXSquared - sumTildeYSquared, 2) + 4 * Math.pow(sumTildeXY, 2))) / (2 * sumTildeXY)
+    const sumTildeXSquared = tildeX.reduce((acc, val) => acc + val * val, 0);
+    const sumTildeYSquared = tildeY.reduce((acc, val) => acc + val * val, 0);
+    const sumTildeXY = tildeX.reduce((acc, val, i) => acc + val * tildeY[i], 0);
+
+    const theta =
+      Math.atan(
+        (sumTildeXSquared - sumTildeYSquared + Math.sqrt(Math.pow(sumTildeXSquared - sumTildeYSquared, 2) + 4 * Math.pow(sumTildeXY, 2))) / (2 * sumTildeXY)
+      );
+
+    // 3. Calculate the semi-axes
+    const sigmaX = Math.sqrt(
+      tildeX.reduce(
+        (acc, val, i) => acc + Math.pow(val * Math.cos(theta) - tildeY[i] * Math.sin(theta), 2),
+        0
+      ) / n
     );
 
-  // 3. Calculate the semi-axes
-  const sigmaX = Math.sqrt(
-    tildeX.reduce(
-      (acc, val, i) => acc + Math.pow(val * Math.cos(theta) - tildeY[i] * Math.sin(theta), 2),
-      0
-    ) / n
-  );
+    const sigmaY = Math.sqrt(
+      tildeX.reduce(
+        (acc, val, i) => acc + Math.pow(val * Math.sin(theta) - tildeY[i] * Math.cos(theta), 2),
+        0
+      ) / n
+    );
 
-  const sigmaY = Math.sqrt(
-    tildeX.reduce(
-      (acc, val, i) => acc + Math.pow(val * Math.sin(theta) - tildeY[i] * Math.cos(theta), 2),
-      0
-    ) / n
-  );
+    // 4. Draw the ellipse on the canvas
+    ctx.save();
+    ctx.beginPath();
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
 
-  // 4. Draw the ellipse on the canvas
-  ctx.save();
-  ctx.beginPath();
-  ctx.strokeStyle = 'red';
-  ctx.lineWidth = 2;
+    // Apply the transformation matrix
+    ctx.setTransform(
+      sigmaX * scaleX * Math.cos(theta),  // a
+      sigmaX * scaleX * Math.sin(theta),  // b
+      -sigmaY * scaleY * Math.sin(theta), // c
+      sigmaY * scaleY * Math.cos(theta),  // d
+      meanX * scaleX + canvasWidth / 2,   // e (translation x)
+      meanY * scaleY + canvasHeight / 2   // f (translation y)
+    );
 
-  // Translate to the center of the ellipse
-  ctx.translate(meanX * scaleX, meanY * scaleY);
-  // Rotate the canvas to the ellipse's angle
-  ctx.rotate(theta);
+    // Draw a circle at the origin of the transformed context
+    ctx.arc(0, 0, 1, 0, 2 * Math.PI);
 
-  // Scale the context to draw the ellipse as a circle
-  ctx.scale(sigmaX * scaleX, sigmaY * scaleY);
-
-  // Draw a circle which will become the ellipse
-  ctx.arc(0, 0, 1, 0, 2 * Math.PI);
-
-  ctx.stroke();
-  ctx.restore();
+    ctx.stroke();
+    ctx.restore();
+  });
 }
 
-const myDataPoints = [
-  { x: -50, y: -50 },
-  { x: 50, y: 50 },
-  { x: 50, y: -50 }
+
+const allData = [
+  // First dataset for a red ellipse
+  [{ x: 100, y: 150 }, { x: 120, y: 170 }, { x: 150, y: 180 }],
+  // Second dataset for a blue ellipse
+  [{ x: -50, y: -70 }, { x: -60, y: -80 }, { x: -40, y: -60 }]
 ];
+
 
 
 if (ctx) {
   // Assuming a simple scaling
-  const scaleX = 800 / 200; // Example: data max X is 200
-  const scaleY = 600 / 200; // Example: data max Y is 200
-  drawDispersionOval(ctx, myDataPoints, scaleX, scaleY);
+  const scaleX = 1; 
+  const scaleY = 1; 
+  drawMultipleDispersionOvals(ctx, allData, scaleX, scaleY);
 }
+
   
   
   </script>
