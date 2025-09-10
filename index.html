@@ -134,6 +134,15 @@ if (ctx) {
   const scaleX = 1; 
   const scaleY = 1; 
   drawMultipleDispersionOvals(ctx, allData, scaleX, scaleY);
+  
+  // Add a 50x50 circle at the center (0,0)
+  ctx.save();
+  ctx.beginPath();
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 2;
+  ctx.arc(0, 0, 25, 0, 2 * Math.PI); // radius of 25 to make a 50x50 circle
+  ctx.stroke();
+  ctx.restore();
 }
 
   
