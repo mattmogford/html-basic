@@ -7,6 +7,93 @@
 <script>
   const canvas = document.getElementById('myCanvas');
   const ctx = canvas.getContext('2d');
+
+
+  /**
+ * Draws a standard deviational ellipse (dispersion oval) on a canvas.
+ *
+ * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
+ * @param {Array<Object>} data - The array of data points, where each object has 'x' and 'y' properties.
+ * @param {number} [scaleX=1] - A scaling factor for the x-coordinates.
+ * @param {number} [scaleY=1] - A scaling factor for the y-coordinates.
+ */
+function drawDispersionOval(ctx, data, scaleX = 1, scaleY = 1) {
+  if (data.length < 2) {
+    console.error("Not enough data points to draw a dispersion oval.");
+    return;
+  }
+
+  // 1. Calculate the mean center
+  const n = data.length;
+  const sumX = data.reduce((acc, point) => acc + point.x, 0);
+  const sumY = data.reduce((acc, point) => acc + point.y, 0);
+  const meanX = sumX / n;
+  const meanY = sumY / n;
+
+  // 2. Calculate the orientation (theta)
+  const tildeX = data.map((point) => point.x - meanX);
+  const tildeY = data.map((point) => point.y - meanY);
+
+  const sumTildeXSquared = tildeX.reduce((acc, val) => acc + val * val, 0);
+  const sumTildeYSquared = tildeY.reduce((acc, val) => acc + val * val, 0);
+  const sumTildeXY = tildeX.reduce((acc, val, i) => acc + val * tildeY[i], 0);
+
+  const theta =
+    Math.atan(
+      (sumTildeXSquared - sumTildeYSquared + Math.sqrt(Math.pow(sumTildeXSquared - sumTildeYSquared, 2) + 4 * Math.pow(sumTildeXY, 2))) / (2 * sumTildeXY)
+    );
+
+  // 3. Calculate the semi-axes
+  const sigmaX = Math.sqrt(
+    tildeX.reduce(
+      (acc, val, i) => acc + Math.pow(val * Math.cos(theta) - tildeY[i] * Math.sin(theta), 2),
+      0
+    ) / n
+  );
+
+  const sigmaY = Math.sqrt(
+    tildeX.reduce(
+      (acc, val, i) => acc + Math.pow(val * Math.sin(theta) - tildeY[i] * Math.cos(theta), 2),
+      0
+    ) / n
+  );
+
+  // 4. Draw the ellipse on the canvas
+  ctx.save();
+  ctx.beginPath();
+  ctx.strokeStyle = 'red';
+  ctx.lineWidth = 2;
+
+  // Translate to the center of the ellipse
+  ctx.translate(meanX * scaleX, meanY * scaleY);
+  // Rotate the canvas to the ellipse's angle
+  ctx.rotate(theta);
+
+  // Scale the context to draw the ellipse as a circle
+  ctx.scale(sigmaX * scaleX, sigmaY * scaleY);
+
+  // Draw a circle which will become the ellipse
+  ctx.arc(0, 0, 1, 0, 2 * Math.PI);
+
+  ctx.stroke();
+  ctx.restore();
+}
+
+const myDataPoints = [
+  { x: 100, y: 150 },
+  { x: 120, y: 170 },
+  { x: 150, y: 180 },
+  // ... more points
+];
+
+
+if (ctx) {
+  // Assuming a simple scaling
+  const scaleX = 800 / 200; // Example: data max X is 200
+  const scaleY = 600 / 200; // Example: data max Y is 200
+  drawDispersionOval(ctx, myDataPoints, scaleX, scaleY);
+}
+  
   
 </script>
 <link rel="stylesheet" href=""> </head>
