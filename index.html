@@ -95,7 +95,7 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
 }
 
 /**
- * Draws a grid on the canvas with horizontal lines every 50 yards and a vertical center line
+ * Draws a grid on the canvas with curved distance lines every 50 yards and a vertical center line
  * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
  */
 function drawGrid(ctx) {
@@ -110,41 +110,35 @@ function drawGrid(ctx) {
   ctx.font = '10px Arial';
   ctx.fillStyle = '#666666';
   
-  // Draw curved horizontal lines every 50 yards (pixels) from bottom
-  // Each curved line is an arc where every point is the same distance from bottom center
-  const bottomCenterX = canvasWidth / 2;
-  const bottomCenterY = canvasHeight;
+  // Draw curved distance lines every 50 yards from bottom center
+  // Each curved line is an arc where every point is the same distance from the tee (bottom center)
+  const teeX = canvasWidth / 2;
+  const teeY = canvasHeight;
   
-  for (let y = 50; y <= canvasHeight; y += 50) {
-    const radius = y; // Distance from bottom center
+  for (let distance = 50; distance <= 300; distance += 50) {
+    const radius = distance; // Distance from tee
     
-    // Only draw if the radius is large enough to create a visible arc
-    if (radius > canvasWidth / 2) {
-      ctx.beginPath();
-      // Calculate the angle range that intersects with the canvas
-      const halfWidth = canvasWidth / 2;
-      const maxAngle = Math.asin(Math.min(1, halfWidth / radius));
-      ctx.arc(bottomCenterX, bottomCenterY, radius, Math.PI - maxAngle, Math.PI + maxAngle);
-      ctx.stroke();
-      
-      // Add yard labels on the left side
-      // Position label at the leftmost point of the arc that's visible on canvas
-      const labelX = Math.max(5, bottomCenterX - radius * Math.sin(maxAngle));
-      const labelY = bottomCenterY - radius * Math.cos(maxAngle) + 3;
-      ctx.fillText(y + ' yds', labelX, labelY);
-    } else {
-      // For small radii, draw a horizontal line across the full width
-      ctx.beginPath();
-      ctx.moveTo(0, canvasHeight - y);
-      ctx.lineTo(canvasWidth, canvasHeight - y);
-      ctx.stroke();
-      
-      // Add yard labels on the left side
-      ctx.fillText(y + ' yds', 5, canvasHeight - y + 3);
+    ctx.beginPath();
+    // Calculate the angle range that intersects with the canvas
+    const halfWidth = canvasWidth / 2;
+    const maxAngle = Math.asin(Math.min(1, halfWidth / radius));
+    
+    // Draw the arc representing all points at this distance from the tee
+    ctx.arc(teeX, teeY, radius, Math.PI - maxAngle, Math.PI + maxAngle);
+    ctx.stroke();
+    
+    // Add yard labels on the left side at consistent positions
+    // Position label at the leftmost visible point of the arc
+    const labelX = 5; // Fixed left margin for consistency
+    const labelY = teeY - radius + 3; // Height based on distance from tee
+    
+    // Only show label if it's within canvas bounds
+    if (labelY > 10 && labelY < canvasHeight - 5) {
+      ctx.fillText(distance + ' yds', labelX, labelY);
     }
   }
   
-  // Draw vertical center line
+  // Draw vertical center line (represents the target line)
   ctx.beginPath();
   ctx.strokeStyle = '#999999';
   ctx.lineWidth = 2;
@@ -153,6 +147,54 @@ function drawGrid(ctx) {
   ctx.stroke();
   
   ctx.restore();
+}
+
+/**
+ * Draws trajectory paths from the tee to each shot landing point
+ * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
+ * @param {Array<Object>} datasets - An array of dataset objects with shot data
+ * @param {number} [scaleX=1] - A scaling factor for the x-coordinates.
+ * @param {number} [scaleY=1] - A scaling factor for the y-coordinates.
+ */
+function drawTrajectoryPaths(ctx, datasets, scaleX = 1, scaleY = 1) {
+  const canvasWidth = ctx.canvas.width;
+  const canvasHeight = ctx.canvas.height;
+  const teeX = canvasWidth / 2;
+  const teeY = canvasHeight;
+
+  datasets.forEach((dataset) => {
+    const data = dataset.data;
+    const color = dataset.color;
+    
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]); // Dashed line for trajectory paths
+    
+    // Draw a curved path from tee to each shot landing point
+    data.forEach((point) => {
+      // Convert data coordinates to canvas coordinates
+      const landingX = canvasWidth / 2 + point.x * scaleX;
+      const landingY = canvasHeight - point.y * scaleY;
+      
+      // Create a parabolic trajectory path
+      ctx.beginPath();
+      ctx.moveTo(teeX, teeY);
+      
+      // Calculate control point for quadratic curve (creates arc effect)
+      // Control point is above the midpoint to simulate ball flight arc
+      const midX = (teeX + landingX) / 2;
+      const midY = (teeY + landingY) / 2;
+      const controlX = midX;
+      const controlY = midY - point.y * 0.3; // Arc height proportional to distance
+      
+      // Draw quadratic curve from tee to landing point
+      ctx.quadraticCurveTo(controlX, controlY, landingX, landingY);
+      ctx.stroke();
+    });
+    
+    ctx.restore();
+  });
 }
 
 const allData = [
@@ -203,9 +245,12 @@ if (ctx) {
   // Draw the grid first (background)
   drawGrid(ctx);
   
-  // Then draw the dispersion ovals on top
+  // Draw trajectory paths second (behind the dispersion ovals)
   const scaleX = 1; 
   const scaleY = 1; 
+  drawTrajectoryPaths(ctx, allData, scaleX, scaleY);
+  
+  // Then draw the dispersion ovals on top
   drawMultipleDispersionOvals(ctx, allData, scaleX, scaleY);
 }
 
