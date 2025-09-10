@@ -110,18 +110,28 @@ function drawGrid(ctx) {
   ctx.font = '10px Arial';
   ctx.fillStyle = '#666666';
   
-  // Draw horizontal lines every 50 yards (pixels) from bottom
-  // Use standard canvas coordinates (0,0 at top-left) to avoid text mirroring
+  // Draw curved horizontal lines every 50 yards (pixels) from bottom
+  // Each curved line is an arc where every point is the same distance from bottom center
+  const bottomCenterX = canvasWidth / 2;
+  const bottomCenterY = canvasHeight;
+  
   for (let y = 0; y <= canvasHeight; y += 50) {
-    const canvasY = canvasHeight - y; // Convert to canvas coordinates
+    if (y === 0) continue; // Skip the bottom line (would be a point)
+    
+    const radius = y; // Distance from bottom center
     
     ctx.beginPath();
-    ctx.moveTo(0, canvasY);
-    ctx.lineTo(canvasWidth, canvasY);
+    // Draw arc from left edge to right edge of canvas
+    // Calculate the angle range that intersects with the canvas
+    const maxAngle = Math.acos(Math.max(-1, Math.min(1, (canvasWidth / 2) / radius)));
+    ctx.arc(bottomCenterX, bottomCenterY, radius, Math.PI - maxAngle, Math.PI + maxAngle);
     ctx.stroke();
     
-    // Add yard labels on the left side - no coordinate transformation needed
-    ctx.fillText(y + ' yds', 2, canvasY - 2);
+    // Add yard labels on the left side
+    // Position label at the leftmost point of the arc that's visible on canvas
+    const labelX = Math.max(2, bottomCenterX - radius * Math.sin(maxAngle));
+    const labelY = bottomCenterY - radius * Math.cos(maxAngle);
+    ctx.fillText(y + ' yds', labelX, labelY - 2);
   }
   
   // Draw vertical center line
