@@ -47,16 +47,25 @@ function initializeCanvas() {
   const ctx = canvas.getContext('2d');
 
   if (ctx) {
+    // Calculate scaling parameters to fit the field in the canvas
+    const scaling = calculateScaling(
+      canvas.width, 
+      canvas.height, 
+      FIELD_WIDTH_YARDS, 
+      FIELD_LENGTH_YARDS
+    );
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
     // Draw the grid first (background)
-    drawGrid(ctx);
+    drawGrid(ctx, scaling);
     
     // Draw trajectory paths second (behind the dispersion ovals)
-    const scaleX = 1; 
-    const scaleY = 1; 
-    drawTrajectoryPaths(ctx, allData, scaleX, scaleY);
+    drawTrajectoryPaths(ctx, allData, scaling);
     
     // Then draw the dispersion ovals on top
-    drawMultipleDispersionOvals(ctx, allData, scaleX, scaleY);
+    drawMultipleDispersionOvals(ctx, allData, scaling);
   }
 }
 

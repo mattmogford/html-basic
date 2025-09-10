@@ -3,11 +3,9 @@
  *
  * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
  * @param {Array<Object>} datasets - An array of dataset objects, where each dataset has 'color' and 'data' properties.
- * @param {number} [scaleX=1] - A scaling factor for the x-coordinates.
- * @param {number} [scaleY=1] - A scaling factor for the y-coordinates.
+ * @param {Object} scaling - Scaling parameters from calculateScaling
  */
-function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
-  const canvasWidth = ctx.canvas.width;
+function drawMultipleDispersionOvals(ctx, datasets, scaling) {
   const canvasHeight = ctx.canvas.height;
 
   datasets.forEach((dataset, i) => {
@@ -54,23 +52,22 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
       ) / n
     );
 
-    // 4. Draw the ellipse using standard canvas coordinates
+    // 4. Draw the ellipse using the new scaling system
     ctx.save();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.max(1, scaling.scale * 0.05);
 
-    // Convert to canvas coordinates (origin at top-left, Y increases downward)
-    const canvasX = canvasWidth / 2 + meanX * scaleX;
-    const canvasY = canvasHeight - meanY * scaleY; // Flip Y to match our data coordinate system
+    // Convert to canvas coordinates using the new scaling system
+    const centerPoint = fieldToCanvas(meanX, meanY, scaling, canvasHeight);
 
-    // Calculate radii with minimum size
-    const minRadius = 1;
-    const rx = Math.max(sigmaX * scaleX, minRadius);
-    const ry = Math.max(sigmaY * scaleY, minRadius);
+    // Calculate radii with minimum size, scaled appropriately
+    const minRadius = Math.max(1, scaling.scale * 0.5);
+    const rx = Math.max(sigmaX * scaling.scale, minRadius);
+    const ry = Math.max(sigmaY * scaling.scale, minRadius);
 
     // Draw ellipse using the ellipse method directly at the correct angle
     ctx.beginPath();
-    ctx.ellipse(canvasX, canvasY, rx, ry, theta, 0, 2 * Math.PI);
+    ctx.ellipse(centerPoint.x, centerPoint.y, rx, ry, theta, 0, 2 * Math.PI);
     ctx.stroke();
     
     ctx.restore();
