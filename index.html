@@ -7,7 +7,7 @@
 
 <link rel="stylesheet" href=""> </head>
   <body>
-    <canvas id="myCanvas" width="800" height="600" style="border: 1px solid black;"></canvas>
+    <canvas id="myCanvas" width="120" height="300" style="border: 1px solid black;"></canvas>
   </body>
 
   <script>
@@ -24,10 +24,10 @@
  * @param {number} [scaleY=1] - A scaling factor for the y-coordinates.
  */
 function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
-  // Translate the canvas to make the center (0,0) only once
+  // Translate the canvas to make (0,0) at bottom middle
   const canvasWidth = ctx.canvas.width;
   const canvasHeight = ctx.canvas.height;
-  ctx.translate(canvasWidth / 2, canvasHeight / 2);
+  ctx.translate(canvasWidth / 2, canvasHeight);
 
   datasets.forEach((dataset, i) => {
     const data = dataset.data;
@@ -80,7 +80,8 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
     ctx.lineWidth = 2;
 
     // Translate to the center of the ellipse, relative to the canvas's new (0,0)
-    ctx.translate(meanX * scaleX, meanY * scaleY);
+    // Note: Y is flipped since we want positive Y to go up from bottom
+    ctx.translate(meanX * scaleX, -meanY * scaleY);
     // Rotate the canvas to the ellipse's angle
     ctx.rotate(theta);
     // Scale the context to draw the ellipse as a circle
@@ -97,46 +98,88 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
   });
 }
 
-
+/**
+ * Draws a grid on the canvas with horizontal lines every 50 yards and a vertical center line
+ * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
+ */
+function drawGrid(ctx) {
+  const canvasWidth = ctx.canvas.width;
+  const canvasHeight = ctx.canvas.height;
+  
+  ctx.save();
+  
+  // Set grid line style
+  ctx.strokeStyle = '#cccccc';
+  ctx.lineWidth = 1;
+  ctx.font = '10px Arial';
+  ctx.fillStyle = '#666666';
+  
+  // Transform to our coordinate system (0,0 at bottom middle)
+  ctx.translate(canvasWidth / 2, canvasHeight);
+  
+  // Draw horizontal lines every 50 yards (pixels) from bottom
+  for (let y = 0; y <= canvasHeight; y += 50) {
+    ctx.beginPath();
+    ctx.moveTo(-canvasWidth / 2, -y);
+    ctx.lineTo(canvasWidth / 2, -y);
+    ctx.stroke();
+    
+    // Add yard labels on the left side
+    ctx.save();
+    ctx.scale(1, -1); // Flip text so it's readable
+    ctx.fillText(y + ' yds', -canvasWidth / 2 + 2, y - 2);
+    ctx.restore();
+  }
+  
+  // Draw vertical center line
+  ctx.beginPath();
+  ctx.strokeStyle = '#999999';
+  ctx.lineWidth = 2;
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, -canvasHeight);
+  ctx.stroke();
+  
+  ctx.restore();
+}
 
 const allData = [
-  // First dataset for a red ellipse
+  // First dataset for a red ellipse (right side, mid-field)
   {
     color: 'red',
-    data: [{ x: 100, y: 150 }, { x: 120, y: 170 }, { x: 150, y: 180 }]
+    data: [{ x: 30, y: 120 }, { x: 35, y: 130 }, { x: 40, y: 125 }]
   },
-  // Second dataset for a blue ellipse
+  // Second dataset for a blue ellipse (left side, lower field)
   {
     color: 'blue',
-    data: [{ x: -50, y: -70 }, { x: -60, y: -80 }, { x: -40, y: -60 }]
+    data: [{ x: -25, y: 80 }, { x: -30, y: 85 }, { x: -20, y: 75 }]
   },
-  // Third dataset for a green ellipse
+  // Third dataset for a green ellipse (right side, upper field)
   {
     color: 'green',
-    data: [{ x: 200, y: -100 }, { x: 220, y: -90 }, { x: 210, y: -120 }, { x: 190, y: -110 }]
+    data: [{ x: 45, y: 220 }, { x: 50, y: 230 }, { x: 40, y: 210 }, { x: 35, y: 225 }]
   },
-  // Fourth dataset for an orange ellipse
+  // Fourth dataset for an orange ellipse (left side, mid-field)
   {
     color: 'orange',
-    data: [{ x: -150, y: 100 }, { x: -140, y: 120 }, { x: -160, y: 110 }, { x: -170, y: 90 }]
+    data: [{ x: -40, y: 150 }, { x: -35, y: 160 }, { x: -45, y: 155 }, { x: -50, y: 145 }]
   },
-  // Fifth dataset for a purple ellipse
+  // Fifth dataset for a purple ellipse (center, upper field)
   {
     color: 'purple',
-    data: [{ x: 50, y: -200 }, { x: 70, y: -180 }, { x: 60, y: -210 }, { x: 40, y: -190 }, { x: 80, y: -170 }]
+    data: [{ x: 10, y: 250 }, { x: 15, y: 260 }, { x: 5, y: 255 }, { x: 0, y: 245 }, { x: 20, y: 265 }]
   },
-  // Sixth dataset for a black circle at center (0,0) - 50x50 size
+  // Sixth dataset for a black circle near the goal line (center)
   {
     color: 'black',
     data: [
-      { x: 25, y: 0 },   // right
-      { x: -25, y: 0 },  // left  
-      { x: 0, y: 25 },   // bottom
-      { x: 0, y: -25 },  // top
-      { x: 17.7, y: 17.7 },   // bottom-right diagonal
-      { x: -17.7, y: -17.7 }, // top-left diagonal
-      { x: 17.7, y: -17.7 },  // top-right diagonal
-      { x: -17.7, y: 17.7 }   // bottom-left diagonal
+      { x: 12, y: 25 },   // right
+      { x: -12, y: 25 },  // left  
+      { x: 0, y: 35 },    // up
+      { x: 0, y: 15 },    // down
+      { x: 8.5, y: 33.5 },   // up-right diagonal
+      { x: -8.5, y: 16.5 },  // down-left diagonal
+      { x: 8.5, y: 16.5 },   // down-right diagonal
+      { x: -8.5, y: 33.5 }   // up-left diagonal
     ]
   }
 ];
@@ -144,7 +187,10 @@ const allData = [
 
 
 if (ctx) {
-  // Assuming a simple scaling
+  // Draw the grid first (background)
+  drawGrid(ctx);
+  
+  // Then draw the dispersion ovals on top
   const scaleX = 1; 
   const scaleY = 1; 
   drawMultipleDispersionOvals(ctx, allData, scaleX, scaleY);
