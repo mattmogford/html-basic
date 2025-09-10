@@ -84,7 +84,10 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
     // Rotate the canvas to the ellipse's angle
     ctx.rotate(theta);
     // Scale the context to draw the ellipse as a circle
-    ctx.scale(sigmaX * scaleX, sigmaY * scaleY);
+    const minRadius = 1;
+    const rx = Math.max(sigmaX * scaleX, minRadius);
+    const ry = Math.max(sigmaY * scaleY, minRadius);
+    ctx.scale(rx, ry);
 
     // Draw a circle which will become the ellipse
     ctx.arc(0, 0, 1, 0, 2 * Math.PI);
