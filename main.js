@@ -70,4 +70,19 @@ function initializeCanvas() {
 }
 
 // Initialize when the DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeCanvas);
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize the canvas with original data
+  initializeCanvas();
+  
+  // Set up CSV file input event listener
+  const csvFileInput = document.getElementById('csvFile');
+  csvFileInput.addEventListener('change', handleCSVFile);
+  
+  // Set up clear data button event listener
+  const clearButton = document.getElementById('clearData');
+  clearButton.addEventListener('click', clearCSVData);
+  
+  // Show initial status
+  const statusDiv = document.getElementById('status');
+  statusDiv.textContent = 'Showing sample data. Import a CSV file with "Carry" and "Offline" columns to visualize your data. See sample-data.csv for format example.';
+});
