@@ -29,7 +29,10 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
   const canvasHeight = ctx.canvas.height;
   ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
-  datasets.forEach((data) => {
+  // Add a list of colours for each ellipse
+  const colours = ['red', 'blue', 'green', 'orange', 'purple'];
+
+  datasets.forEach((data, i) => {
     if (data.length < 2) {
       console.error("Not enough data points in a dataset to draw a dispersion oval.");
       return;
@@ -73,7 +76,7 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
     // 4. Draw the ellipse on the canvas
     ctx.save();
     ctx.beginPath();
-    ctx.strokeStyle = 'red';
+    ctx.strokeStyle = colours[i % colours.length]; // Use a different colour for each
     ctx.lineWidth = 2;
 
     // Translate to the center of the ellipse, relative to the canvas's new (0,0)
