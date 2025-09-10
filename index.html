@@ -24,7 +24,7 @@
  * @param {number} [scaleY=1] - A scaling factor for the y-coordinates.
  */
 function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
-  // Translate the canvas to make the center (0,0)
+  // Translate the canvas to make the center (0,0) only once
   const canvasWidth = ctx.canvas.width;
   const canvasHeight = ctx.canvas.height;
   ctx.translate(canvasWidth / 2, canvasHeight / 2);
@@ -76,17 +76,14 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 2;
 
-    // Apply the transformation matrix
-    ctx.setTransform(
-      sigmaX * scaleX * Math.cos(theta),  // a
-      sigmaX * scaleX * Math.sin(theta),  // b
-      -sigmaY * scaleY * Math.sin(theta), // c
-      sigmaY * scaleY * Math.cos(theta),  // d
-      meanX * scaleX + canvasWidth / 2,   // e (translation x)
-      meanY * scaleY + canvasHeight / 2   // f (translation y)
-    );
+    // Translate to the center of the ellipse, relative to the canvas's new (0,0)
+    ctx.translate(meanX * scaleX, meanY * scaleY);
+    // Rotate the canvas to the ellipse's angle
+    ctx.rotate(theta);
+    // Scale the context to draw the ellipse as a circle
+    ctx.scale(sigmaX * scaleX, sigmaY * scaleY);
 
-    // Draw a circle at the origin of the transformed context
+    // Draw a circle which will become the ellipse
     ctx.arc(0, 0, 1, 0, 2 * Math.PI);
 
     ctx.stroke();
@@ -95,11 +92,12 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
 }
 
 
+
 const allData = [
   // First dataset for a red ellipse
   [{ x: 100, y: 150 }, { x: 120, y: 170 }, { x: 150, y: 180 }],
   // Second dataset for a blue ellipse
-  [{ x: 50, y: 70 }, { x: 60, y: 80 }, { x: 40, y: 60 }]
+  [{ x: -50, y: -70 }, { x: -60, y: -80 }, { x: -40, y: -60 }]
 ];
 
 
