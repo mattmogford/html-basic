@@ -95,7 +95,7 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
 }
 
 /**
- * Draws a grid on the canvas with curved distance lines every 50 yards and a vertical center line
+ * Draws a grid on the canvas with straight horizontal distance lines every 50 yards and a vertical center line
  * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
  */
 function drawGrid(ctx) {
@@ -110,30 +110,21 @@ function drawGrid(ctx) {
   ctx.font = '10px Arial';
   ctx.fillStyle = '#666666';
   
-  // Draw curved distance lines every 50 yards from bottom center
-  // Each curved line is an arc where every point is the same distance from the tee (bottom center)
-  const teeX = canvasWidth / 2;
-  const teeY = canvasHeight;
-  
+  // Draw straight horizontal distance lines every 50 yards
   for (let distance = 50; distance <= 300; distance += 50) {
-    const radius = distance; // Distance from tee
+    // Calculate Y position based on distance from tee (bottom of canvas)
+    const yPosition = canvasHeight - distance;
     
-    ctx.beginPath();
-    // Calculate the angle range that intersects with the canvas
-    const halfWidth = canvasWidth / 2;
-    const maxAngle = Math.asin(Math.min(1, halfWidth / radius));
-    
-    // Draw the arc representing all points at this distance from the tee
-    ctx.arc(teeX, teeY, radius, Math.PI - maxAngle, Math.PI + maxAngle);
-    ctx.stroke();
-    
-    // Add yard labels on the left side at consistent positions
-    // Position label at the leftmost visible point of the arc
-    const labelX = 5; // Fixed left margin for consistency
-    const labelY = teeY - radius + 3; // Height based on distance from tee
-    
-    // Only show label if it's within canvas bounds
-    if (labelY > 10 && labelY < canvasHeight - 5) {
+    // Only draw if the line is within canvas bounds
+    if (yPosition > 0 && yPosition < canvasHeight) {
+      ctx.beginPath();
+      ctx.moveTo(0, yPosition);
+      ctx.lineTo(canvasWidth, yPosition);
+      ctx.stroke();
+      
+      // Add yard labels on the left side
+      const labelX = 5;
+      const labelY = yPosition - 3;
       ctx.fillText(distance + ' yds', labelX, labelY);
     }
   }
@@ -150,7 +141,7 @@ function drawGrid(ctx) {
 }
 
 /**
- * Draws trajectory paths from the tee to each shot landing point
+ * Draws trajectory paths from the tee to the center of each dispersion oval
  * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
  * @param {Array<Object>} datasets - An array of dataset objects with shot data
  * @param {number} [scaleX=1] - A scaling factor for the x-coordinates.
@@ -166,32 +157,40 @@ function drawTrajectoryPaths(ctx, datasets, scaleX = 1, scaleY = 1) {
     const data = dataset.data;
     const color = dataset.color;
     
+    if (data.length < 2) {
+      return;
+    }
+    
+    // Calculate the mean center of the dataset (same as in drawMultipleDispersionOvals)
+    const n = data.length;
+    const sumX = data.reduce((acc, point) => acc + point.x, 0);
+    const sumY = data.reduce((acc, point) => acc + point.y, 0);
+    const meanX = sumX / n;
+    const meanY = sumY / n;
+    
     ctx.save();
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 2]); // Dashed line for trajectory paths
     
-    // Draw a curved path from tee to each shot landing point
-    data.forEach((point) => {
-      // Convert data coordinates to canvas coordinates
-      const landingX = canvasWidth / 2 + point.x * scaleX;
-      const landingY = canvasHeight - point.y * scaleY;
-      
-      // Create a parabolic trajectory path
-      ctx.beginPath();
-      ctx.moveTo(teeX, teeY);
-      
-      // Calculate control point for quadratic curve (creates arc effect)
-      // Control point is above the midpoint to simulate ball flight arc
-      const midX = (teeX + landingX) / 2;
-      const midY = (teeY + landingY) / 2;
-      const controlX = midX;
-      const controlY = midY - point.y * 0.3; // Arc height proportional to distance
-      
-      // Draw quadratic curve from tee to landing point
-      ctx.quadraticCurveTo(controlX, controlY, landingX, landingY);
-      ctx.stroke();
-    });
+    // Convert mean center coordinates to canvas coordinates
+    const centerX = canvasWidth / 2 + meanX * scaleX;
+    const centerY = canvasHeight - meanY * scaleY;
+    
+    // Create a parabolic trajectory path from tee to oval center
+    ctx.beginPath();
+    ctx.moveTo(teeX, teeY);
+    
+    // Calculate control point for quadratic curve (creates arc effect)
+    // Control point is above the midpoint to simulate ball flight arc
+    const midX = (teeX + centerX) / 2;
+    const midY = (teeY + centerY) / 2;
+    const controlX = midX;
+    const controlY = midY - meanY * 0.3; // Arc height proportional to distance
+    
+    // Draw quadratic curve from tee to oval center
+    ctx.quadraticCurveTo(controlX, controlY, centerX, centerY);
+    ctx.stroke();
     
     ctx.restore();
   });
