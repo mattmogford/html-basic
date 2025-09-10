@@ -5,9 +5,80 @@
 <meta name="viewport" content="width=device-width, initial-scale=1 ">
 <title></title>
 
-<link rel="stylesheet" href=""> </head>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+  }
+  
+  .controls {
+    background-color: white;
+    padding: 15px;
+    margin: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .control-group {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  label {
+    font-weight: bold;
+    color: #333;
+  }
+  
+  input[type="file"] {
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  button {
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  button:hover {
+    background-color: #1565c0;
+  }
+  
+  #status {
+    margin-bottom: 10px;
+    color: #666;
+    font-size: 14px;
+    min-height: 20px;
+  }
+  
+  #myCanvas {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: white;
+  }
+</style>
+</head>
   <body>
-    <canvas id="myCanvas" width="400" height="600" style="border: 1px solid black;"></canvas>
+    <div class="controls">
+      <div class="control-group">
+        <label for="csvFile">Import CSV file:</label>
+        <input type="file" id="csvFile" accept=".csv">
+        <button id="clearData">Clear Data</button>
+      </div>
+      <div id="status"></div>
+    </div>
+    <canvas id="myCanvas" width="400" height="600"></canvas>
   </body>
 
   <!-- Include external JavaScript files -->
@@ -16,6 +87,7 @@
   <script src="grid-drawing.js"></script>
   <script src="trajectory-paths.js"></script>
   <script src="dispersion-ovals.js"></script>
+  <script src="csv-handler.js"></script>
   <script src="main.js"></script>
   
 </html>
