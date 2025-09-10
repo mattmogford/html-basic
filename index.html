@@ -19,7 +19,7 @@
  * Draws multiple standard deviational ellipses (dispersion ovals) on a canvas.
  *
  * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
- * @param {Array<Array<Object>>} datasets - An array of datasets, where each dataset is an array of objects with 'x' and 'y' properties.
+ * @param {Array<Object>} datasets - An array of dataset objects, where each dataset has 'color' and 'data' properties.
  * @param {number} [scaleX=1] - A scaling factor for the x-coordinates.
  * @param {number} [scaleY=1] - A scaling factor for the y-coordinates.
  */
@@ -29,10 +29,10 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
   const canvasHeight = ctx.canvas.height;
   ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
-  // Add a list of colours for each ellipse
-  const colours = ['red', 'blue', 'green', 'orange', 'purple'];
-
-  datasets.forEach((data, i) => {
+  datasets.forEach((dataset, i) => {
+    const data = dataset.data;
+    const color = dataset.color;
+    
     if (data.length < 2) {
       console.error("Not enough data points in a dataset to draw a dispersion oval.");
       return;
@@ -76,7 +76,7 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
     // 4. Draw the ellipse on the canvas
     ctx.save();
     ctx.beginPath();
-    ctx.strokeStyle = colours[i % colours.length]; // Use a different colour for each
+    ctx.strokeStyle = color; // Use the color from the dataset
     ctx.lineWidth = 2;
 
     // Translate to the center of the ellipse, relative to the canvas's new (0,0)
@@ -101,9 +101,30 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
 
 const allData = [
   // First dataset for a red ellipse
-  [{ x: 100, y: 150 }, { x: 120, y: 170 }, { x: 150, y: 180 }],
+  {
+    color: 'red',
+    data: [{ x: 100, y: 150 }, { x: 120, y: 170 }, { x: 150, y: 180 }]
+  },
   // Second dataset for a blue ellipse
-  [{ x: -50, y: -70 }, { x: -60, y: -80 }, { x: -40, y: -60 }]
+  {
+    color: 'blue',
+    data: [{ x: -50, y: -70 }, { x: -60, y: -80 }, { x: -40, y: -60 }]
+  },
+  // Third dataset for a green ellipse
+  {
+    color: 'green',
+    data: [{ x: 200, y: -100 }, { x: 220, y: -90 }, { x: 210, y: -120 }, { x: 190, y: -110 }]
+  },
+  // Fourth dataset for an orange ellipse
+  {
+    color: 'orange',
+    data: [{ x: -150, y: 100 }, { x: -140, y: 120 }, { x: -160, y: 110 }, { x: -170, y: 90 }]
+  },
+  // Fifth dataset for a purple ellipse
+  {
+    color: 'purple',
+    data: [{ x: 50, y: -200 }, { x: 70, y: -180 }, { x: 60, y: -210 }, { x: 40, y: -190 }, { x: 80, y: -170 }]
+  }
 ];
 
 
