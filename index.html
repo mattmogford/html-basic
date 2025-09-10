@@ -71,30 +71,25 @@ function drawMultipleDispersionOvals(ctx, datasets, scaleX = 1, scaleY = 1) {
       ) / n
     );
 
-    // 4. Draw the ellipse on the canvas
+    // 4. Draw the ellipse using standard canvas coordinates
     ctx.save();
-    ctx.beginPath();
-    ctx.strokeStyle = color; // Use the color from the dataset
+    ctx.strokeStyle = color;
     ctx.lineWidth = 2;
 
-    // Apply all transformations for this specific ellipse only
-    // First, translate canvas to make (0,0) at bottom middle
-    ctx.translate(canvasWidth / 2, canvasHeight);
-    // Then translate to the center of the ellipse
-    // Note: Y is flipped since we want positive Y to go up from bottom
-    ctx.translate(meanX * scaleX, -meanY * scaleY);
-    // Rotate only this ellipse to its angle
-    ctx.rotate(theta);
-    // Scale the context to draw the ellipse as a circle
+    // Convert to canvas coordinates (origin at top-left, Y increases downward)
+    const canvasX = canvasWidth / 2 + meanX * scaleX;
+    const canvasY = canvasHeight - meanY * scaleY; // Flip Y to match our data coordinate system
+
+    // Calculate radii with minimum size
     const minRadius = 1;
     const rx = Math.max(sigmaX * scaleX, minRadius);
     const ry = Math.max(sigmaY * scaleY, minRadius);
-    ctx.scale(rx, ry);
 
-    // Draw a circle which will become the ellipse
-    ctx.arc(0, 0, 1, 0, 2 * Math.PI);
-
+    // Draw ellipse using the ellipse method directly at the correct angle
+    ctx.beginPath();
+    ctx.ellipse(canvasX, canvasY, rx, ry, theta, 0, 2 * Math.PI);
     ctx.stroke();
+    
     ctx.restore();
   });
 }
@@ -115,29 +110,26 @@ function drawGrid(ctx) {
   ctx.font = '10px Arial';
   ctx.fillStyle = '#666666';
   
-  // Transform to our coordinate system (0,0 at bottom middle)
-  ctx.translate(canvasWidth / 2, canvasHeight);
-  
   // Draw horizontal lines every 50 yards (pixels) from bottom
+  // Use standard canvas coordinates (0,0 at top-left) to avoid text mirroring
   for (let y = 0; y <= canvasHeight; y += 50) {
+    const canvasY = canvasHeight - y; // Convert to canvas coordinates
+    
     ctx.beginPath();
-    ctx.moveTo(-canvasWidth / 2, -y);
-    ctx.lineTo(canvasWidth / 2, -y);
+    ctx.moveTo(0, canvasY);
+    ctx.lineTo(canvasWidth, canvasY);
     ctx.stroke();
     
-    // Add yard labels on the left side
-    ctx.save();
-    ctx.scale(1, -1); // Flip text so it's readable
-    ctx.fillText(y + ' yds', -canvasWidth / 2 + 2, y - 2);
-    ctx.restore();
+    // Add yard labels on the left side - no coordinate transformation needed
+    ctx.fillText(y + ' yds', 2, canvasY - 2);
   }
   
   // Draw vertical center line
   ctx.beginPath();
   ctx.strokeStyle = '#999999';
   ctx.lineWidth = 2;
-  ctx.moveTo(0, 0);
-  ctx.lineTo(0, -canvasHeight);
+  ctx.moveTo(canvasWidth / 2, 0);
+  ctx.lineTo(canvasWidth / 2, canvasHeight);
   ctx.stroke();
   
   ctx.restore();
