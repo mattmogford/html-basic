@@ -115,23 +115,33 @@ function drawGrid(ctx) {
   const bottomCenterX = canvasWidth / 2;
   const bottomCenterY = canvasHeight;
   
-  for (let y = 0; y <= canvasHeight; y += 50) {
-    if (y === 0) continue; // Skip the bottom line (would be a point)
-    
+  for (let y = 50; y <= canvasHeight; y += 50) {
     const radius = y; // Distance from bottom center
     
-    ctx.beginPath();
-    // Draw arc from left edge to right edge of canvas
-    // Calculate the angle range that intersects with the canvas
-    const maxAngle = Math.acos(Math.max(-1, Math.min(1, (canvasWidth / 2) / radius)));
-    ctx.arc(bottomCenterX, bottomCenterY, radius, Math.PI - maxAngle, Math.PI + maxAngle);
-    ctx.stroke();
-    
-    // Add yard labels on the left side
-    // Position label at the leftmost point of the arc that's visible on canvas
-    const labelX = Math.max(2, bottomCenterX - radius * Math.sin(maxAngle));
-    const labelY = bottomCenterY - radius * Math.cos(maxAngle);
-    ctx.fillText(y + ' yds', labelX, labelY - 2);
+    // Only draw if the radius is large enough to create a visible arc
+    if (radius > canvasWidth / 2) {
+      ctx.beginPath();
+      // Calculate the angle range that intersects with the canvas
+      const halfWidth = canvasWidth / 2;
+      const maxAngle = Math.asin(Math.min(1, halfWidth / radius));
+      ctx.arc(bottomCenterX, bottomCenterY, radius, Math.PI - maxAngle, Math.PI + maxAngle);
+      ctx.stroke();
+      
+      // Add yard labels on the left side
+      // Position label at the leftmost point of the arc that's visible on canvas
+      const labelX = Math.max(5, bottomCenterX - radius * Math.sin(maxAngle));
+      const labelY = bottomCenterY - radius * Math.cos(maxAngle) + 3;
+      ctx.fillText(y + ' yds', labelX, labelY);
+    } else {
+      // For small radii, draw a horizontal line across the full width
+      ctx.beginPath();
+      ctx.moveTo(0, canvasHeight - y);
+      ctx.lineTo(canvasWidth, canvasHeight - y);
+      ctx.stroke();
+      
+      // Add yard labels on the left side
+      ctx.fillText(y + ' yds', 5, canvasHeight - y + 3);
+    }
   }
   
   // Draw vertical center line
