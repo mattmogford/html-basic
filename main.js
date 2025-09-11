@@ -70,10 +70,7 @@ function initializeCanvas() {
 }
 
 // Initialize when the DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize the canvas with original data
-  initializeCanvas();
-  
+document.addEventListener('DOMContentLoaded', async function() {
   // Set up CSV file input event listener
   const csvFileInput = document.getElementById('csvFile');
   csvFileInput.addEventListener('change', handleCSVFile);
@@ -82,7 +79,14 @@ document.addEventListener('DOMContentLoaded', function() {
   const clearButton = document.getElementById('clearData');
   clearButton.addEventListener('click', clearCSVData);
   
-  // Show initial status
-  const statusDiv = document.getElementById('status');
-  statusDiv.textContent = 'Showing sample data. Import a CSV file with "Carry" and "Offline" columns to visualize your data. See sample-data.csv for format example.';
+  // Try to load other.csv automatically, fallback to sample data if it fails
+  try {
+    await loadOtherCSV();
+  } catch (error) {
+    // If other.csv fails to load, show sample data
+    initializeCanvas();
+    const statusDiv = document.getElementById('status');
+    statusDiv.textContent = 'Could not load other.csv, showing sample data instead. Import a CSV file with "Carry", "Offline", and "Club" columns to visualize your data.';
+    statusDiv.style.color = '#666';
+  }
 });

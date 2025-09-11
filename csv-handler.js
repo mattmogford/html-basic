@@ -7,9 +7,22 @@
 let importedData = [];
 
 /**
- * Parses CSV text and extracts data points
+ * Generates a random color
+ * @returns {string} Random color in hex format
+ */
+function generateRandomColor() {
+  const colors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+    '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2'
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+/**
+ * Parses CSV text and extracts data points grouped by Club
  * @param {string} csvText - The raw CSV text
- * @returns {Array} Array of data points with x and y coordinates
+ * @returns {Array} Array of datasets grouped by club with random colors
  */
 function parseCSV(csvText) {
   const lines = csvText.trim().split('\n');
@@ -22,6 +35,7 @@ function parseCSV(csvText) {
   const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
   const carryIndex = headers.findIndex(h => h === 'carry');
   const offlineIndex = headers.findIndex(h => h === 'offline');
+  const clubIndex = headers.findIndex(h => h === 'club');
   
   if (carryIndex === -1) {
     throw new Error('CSV file must contain a "Carry" column');
@@ -31,32 +45,54 @@ function parseCSV(csvText) {
     throw new Error('CSV file must contain an "Offline" column');
   }
   
-  // Parse data rows
-  const dataPoints = [];
+  if (clubIndex === -1) {
+    throw new Error('CSV file must contain a "Club" column');
+  }
+  
+  // Group data points by club
+  const clubGroups = {};
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',').map(v => v.trim());
     
-    if (values.length <= Math.max(carryIndex, offlineIndex)) {
+    if (values.length <= Math.max(carryIndex, offlineIndex, clubIndex)) {
       console.warn(`Row ${i + 1} has insufficient columns, skipping`);
       continue;
     }
     
     const carry = parseFloat(values[carryIndex]);
     const offline = parseFloat(values[offlineIndex]);
+    const club = values[clubIndex];
     
-    if (isNaN(carry) || isNaN(offline)) {
-      console.warn(`Row ${i + 1} has invalid numeric values, skipping`);
+    if (isNaN(carry) || isNaN(offline) || !club) {
+      console.warn(`Row ${i + 1} has invalid values, skipping`);
       continue;
     }
     
+    // Initialize club group if it doesn't exist
+    if (!clubGroups[club]) {
+      clubGroups[club] = [];
+    }
+    
     // Carry becomes y (distance down field), Offline becomes x (left/right from center)
-    dataPoints.push({
+    clubGroups[club].push({
       x: offline,
       y: carry
     });
   }
   
-  return dataPoints;
+  // Convert grouped data into datasets with random colors
+  const datasets = [];
+  for (const [club, dataPoints] of Object.entries(clubGroups)) {
+    if (dataPoints.length > 0) {
+      datasets.push({
+        color: generateRandomColor(),
+        data: dataPoints,
+        club: club
+      });
+    }
+  }
+  
+  return datasets;
 }
 
 /**
@@ -85,25 +121,21 @@ function handleCSVFile(event) {
   reader.onload = function(e) {
     try {
       const csvText = e.target.result;
-      const dataPoints = parseCSV(csvText);
+      const datasets = parseCSV(csvText);
       
-      if (dataPoints.length === 0) {
-        throw new Error('No valid data points found in CSV file');
+      if (datasets.length === 0) {
+        throw new Error('No valid data groups found in CSV file');
       }
       
       // Store the imported data
-      importedData = dataPoints;
-      
-      // Create a dataset for visualization (using blue color for imported data)
-      const csvDataset = {
-        color: 'blue',
-        data: dataPoints
-      };
+      importedData = datasets;
       
       // Update the visualization with CSV data
-      updateVisualizationWithCSV([csvDataset]);
+      updateVisualizationWithCSV(datasets);
       
-      statusDiv.textContent = `Successfully imported ${dataPoints.length} data points`;
+      const totalPoints = datasets.reduce((sum, dataset) => sum + dataset.data.length, 0);
+      const clubNames = datasets.map(d => d.club).join(', ');
+      statusDiv.textContent = `Successfully imported ${totalPoints} data points from ${datasets.length} clubs: ${clubNames}`;
       statusDiv.style.color = '#388e3c';
       
     } catch (error) {
@@ -170,15 +202,63 @@ function clearCSVData() {
 }
 
 /**
+ * Loads the other.csv file automatically
+ */
+async function loadOtherCSV() {
+  const statusDiv = document.getElementById('status');
+  
+  try {
+    statusDiv.textContent = 'Loading other.csv file...';
+    statusDiv.style.color = '#1976d2';
+    
+    const response = await fetch('other.csv');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const csvText = await response.text();
+    const datasets = parseCSV(csvText);
+    
+    if (datasets.length === 0) {
+      throw new Error('No valid data groups found in other.csv file');
+    }
+    
+    // Store the imported data
+    importedData = datasets;
+    
+    // Update the visualization with CSV data
+    updateVisualizationWithCSV(datasets);
+    
+    const totalPoints = datasets.reduce((sum, dataset) => sum + dataset.data.length, 0);
+    const clubNames = datasets.map(d => d.club).join(', ');
+    statusDiv.textContent = `Successfully loaded other.csv: ${totalPoints} data points from ${datasets.length} clubs: ${clubNames}`;
+    statusDiv.style.color = '#388e3c';
+    
+    return datasets;
+    
+  } catch (error) {
+    statusDiv.textContent = `Error loading other.csv: ${error.message}`;
+    statusDiv.style.color = '#d32f2f';
+    console.error('Error loading other.csv:', error);
+    
+    // Fallback to original sample data
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      initializeCanvas();
+    }
+    
+    throw error;
+  }
+}
+
+/**
  * Gets the current data being displayed (CSV or original)
  * @returns {Array} Current dataset array
  */
 function getCurrentData() {
   if (importedData.length > 0) {
-    return [{
-      color: 'blue',
-      data: importedData
-    }];
+    return importedData; // importedData is now already an array of datasets
   }
   return allData; // fallback to original sample data
 }
